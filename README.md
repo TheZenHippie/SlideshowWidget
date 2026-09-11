@@ -1,3 +1,4 @@
+<img width="1589" height="301" alt="image" src="https://github.com/user-attachments/assets/1470d558-51ec-45ea-964a-de4f161a4734" />
 # 🖼️ SlideshowWidget
 
 [![.NET](https://img.shields.io/badge/.NET-8.0--windows-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)

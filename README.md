@@ -14,6 +14,9 @@ A modern, lightweight, frameless desktop slideshow widget for Windows. Floats se
 - **Borderless & Transparent:** A clean, chrome-free photo frame that blends into your desktop without window title bars or clutter.
 - **Subtle 3-D Desktop Shadow:** Soft, realistic drop shadow (`Blur: 16px`, `Depth: 4px`, `Opacity: 35%`) giving images a floating 3D photograph aesthetic on the desktop. Can be toggled on/off at any time.
 - **Precise Opacity Slider:** Drag the live opacity slider in the right-click menu from **10% to 100%** (or scroll with your mouse wheel) to achieve the perfect transparency level.
+- **Recursive Subdirectory Scanning:** Checkbox option in the native Windows folder picker and context menu to recurse and include all images in nested subdirectories.
+- **Continuous Slideshow Looping:** The slideshow loops endlessly (both sequentially and randomized) without stopping until the widget is closed or program exits.
+- **Randomized Image Order:** Checkbox option in the right-click menu to shuffle image display order, completing a full pass through the image library before reshuffling.
 - **Custom Slideshow Interval:**
   - **1s – 60s Slider:** Fine-tune intervals down to the second with live feedback.
   - **Extended Presets:** 10s, 30s, 1m, 2m, 5m, 10m, and 30m presets for longer ambient photo rotations.
@@ -40,7 +43,9 @@ Right-click anywhere on the widget to access the control panel:
 
 | Menu Item | Description |
 | :--- | :--- |
-| **Select Folder...** | Opens the modern Windows folder picker to choose your photo directory. |
+| **Select Folder...** | Opens the folder picker (with native **Recurse subdirectories** checkbox) to choose your photo directory. |
+| **Recurse Subdirectories** | Checkbox to toggle inclusion of nested subfolders for the current image library. |
+| **Randomize Order** | Checkbox to toggle shuffled/randomized playback vs sequential order. |
 | **Pause / Resume Slideshow** | Freezes playback on the current image or resumes automatic rotation. |
 | **Previous Image** | Steps backward to the previous compatible image in the folder. |
 | **Next Image** | Advances forward to the next image immediately. |

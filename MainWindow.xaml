@@ -15,6 +15,16 @@
     <Window.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Select Folder..." Click="SelectFolder_Click"/>
+            <MenuItem x:Name="RecurseSubdirectoriesMenuItem" 
+                      Header="Recurse Subdirectories" 
+                      IsCheckable="True" 
+                      IsChecked="False" 
+                      Click="RecurseSubdirectories_Click"/>
+            <MenuItem x:Name="RandomizeOrderMenuItem" 
+                      Header="Randomize Order" 
+                      IsCheckable="True" 
+                      IsChecked="False" 
+                      Click="RandomizeOrder_Click"/>
             <Separator/>
             
             <MenuItem x:Name="PlayPauseMenuItem" Header="Pause Slideshow" Click="PlayPause_Click"/>

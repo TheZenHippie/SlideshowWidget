@@ -19,9 +19,14 @@ namespace SlideshowWidget
     public partial class MainWindow : Window
     {
         private List<string> _imageFiles = new List<string>();
-        private int _currentIndex = -1;
+        private List<int> _displayOrder = new List<int>();
+        private int _displayIndex = -1;
         private readonly DispatcherTimer _timer;
         private bool _isAdjustingOrientation = false;
+        private bool _recurseSubdirectories = false;
+        private bool _isRandomized = false;
+        private string? _currentFolderPath = null;
+        private static readonly Random _random = new Random();
 
         public MainWindow()
         {
@@ -65,41 +70,162 @@ namespace SlideshowWidget
         // Folder selection menu logic
         private void SelectFolder_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFolderDialog
+            var result = FolderPicker.Show(this, _currentFolderPath, _recurseSubdirectories);
+            if (result.Success && !string.IsNullOrWhiteSpace(result.SelectedPath))
             {
-                Title = "Select a folder containing images for the slideshow",
-                Multiselect = false
-            };
-
-            if (dialog.ShowDialog(this) == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
-            {
-                try
+                _recurseSubdirectories = result.RecurseSubdirectories;
+                if (RecurseSubdirectoriesMenuItem != null)
                 {
-                    string[] extensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".ico" };
-                    var foundFiles = Directory.EnumerateFiles(dialog.FolderName)
-                        .Where(file => extensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
-                        .ToList();
+                    RecurseSubdirectoriesMenuItem.IsChecked = _recurseSubdirectories;
+                }
 
-                    if (foundFiles.Count > 0)
+                LoadFolder(result.SelectedPath, keepCurrentImage: false);
+            }
+        }
+
+        private void RecurseSubdirectories_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem)
+            {
+                _recurseSubdirectories = menuItem.IsChecked;
+                if (!string.IsNullOrWhiteSpace(_currentFolderPath) && Directory.Exists(_currentFolderPath))
+                {
+                    LoadFolder(_currentFolderPath, keepCurrentImage: true);
+                }
+            }
+        }
+
+        private void RandomizeOrder_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem)
+            {
+                _isRandomized = menuItem.IsChecked;
+                if (_imageFiles.Count > 0)
+                {
+                    int currentImageIndex = (_displayIndex >= 0 && _displayIndex < _displayOrder.Count)
+                        ? _displayOrder[_displayIndex]
+                        : 0;
+
+                    if (_isRandomized)
                     {
-                        _imageFiles = foundFiles;
-                        _currentIndex = -1;
-                        NextImage();
-                        _timer.Start();
-                        if (PlayPauseMenuItem != null)
+                        var remaining = Enumerable.Range(0, _imageFiles.Count)
+                            .Where(idx => idx != currentImageIndex)
+                            .OrderBy(_ => _random.Next())
+                            .ToList();
+                        _displayOrder = new List<int> { currentImageIndex };
+                        _displayOrder.AddRange(remaining);
+                        _displayIndex = 0;
+                    }
+                    else
+                    {
+                        _displayOrder = Enumerable.Range(0, _imageFiles.Count).ToList();
+                        _displayIndex = currentImageIndex;
+                    }
+                }
+            }
+        }
+
+        private void LoadFolder(string folderPath, bool keepCurrentImage)
+        {
+            try
+            {
+                string? currentImagePath = (keepCurrentImage && _imageFiles.Count > 0 && _displayIndex >= 0 && _displayIndex < _displayOrder.Count)
+                    ? _imageFiles[_displayOrder[_displayIndex]]
+                    : null;
+
+                string[] extensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".ico" };
+                var options = new EnumerationOptions
+                {
+                    RecurseSubdirectories = _recurseSubdirectories,
+                    IgnoreInaccessible = true,
+                    AttributesToSkip = FileAttributes.ReparsePoint
+                };
+
+                var foundFiles = Directory.EnumerateFiles(folderPath, "*.*", options)
+                    .Where(file => extensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (foundFiles.Count > 0)
+                {
+                    _currentFolderPath = folderPath;
+                    _imageFiles = foundFiles;
+
+                    if (_isRandomized)
+                    {
+                        var list = Enumerable.Range(0, _imageFiles.Count).ToList();
+                        for (int i = list.Count - 1; i > 0; i--)
                         {
-                            PlayPauseMenuItem.Header = "Pause Slideshow";
+                            int j = _random.Next(i + 1);
+                            (list[i], list[j]) = (list[j], list[i]);
+                        }
+                        _displayOrder = list;
+
+                        if (keepCurrentImage && currentImagePath != null)
+                        {
+                            int newIdx = _imageFiles.IndexOf(currentImagePath);
+                            if (newIdx >= 0)
+                            {
+                                int orderPos = _displayOrder.IndexOf(newIdx);
+                                _displayIndex = orderPos >= 0 ? orderPos : 0;
+                            }
+                            else
+                            {
+                                _displayIndex = -1;
+                                NextImage();
+                            }
+                        }
+                        else
+                        {
+                            _displayIndex = -1;
+                            NextImage();
                         }
                     }
                     else
                     {
-                        MessageBox.Show("No compatible images found in the selected folder.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                        _displayOrder = Enumerable.Range(0, _imageFiles.Count).ToList();
+
+                        if (keepCurrentImage && currentImagePath != null)
+                        {
+                            int newIdx = _imageFiles.IndexOf(currentImagePath);
+                            _displayIndex = newIdx >= 0 ? newIdx : 0;
+                            if (newIdx < 0)
+                            {
+                                _displayIndex = -1;
+                                NextImage();
+                            }
+                        }
+                        else
+                        {
+                            _displayIndex = -1;
+                            NextImage();
+                        }
+                    }
+
+                    _timer.Start();
+                    if (PlayPauseMenuItem != null)
+                    {
+                        PlayPauseMenuItem.Header = "Pause Slideshow";
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    MessageBox.Show($"Error reading folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _timer.Stop();
+                    _imageFiles.Clear();
+                    _displayOrder.Clear();
+                    _displayIndex = -1;
+                    SlideshowImage.Source = null;
+                    PlaceholderBorder.Visibility = Visibility.Visible;
+                    if (PlayPauseMenuItem != null)
+                    {
+                        PlayPauseMenuItem.Header = "Resume Slideshow";
+                    }
+                    MessageBox.Show("No compatible images found in the selected folder.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error reading folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -141,17 +267,56 @@ namespace SlideshowWidget
             NextImage();
         }
 
+        private void ReshuffleDisplayOrder()
+        {
+            if (_imageFiles.Count <= 1) return;
+
+            int lastShownImageIndex = (_displayIndex >= 0 && _displayIndex < _displayOrder.Count)
+                ? _displayOrder[_displayIndex]
+                : -1;
+
+            var list = Enumerable.Range(0, _imageFiles.Count).ToList();
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
+
+            // Prevent repeating the same image back-to-back across the loop boundary
+            if (list.Count > 1 && list[0] == lastShownImageIndex)
+            {
+                int swapIdx = _random.Next(1, list.Count);
+                (list[0], list[swapIdx]) = (list[swapIdx], list[0]);
+            }
+
+            _displayOrder = list;
+        }
+
         private void NextImage()
         {
-            if (_imageFiles.Count == 0) return;
+            if (_imageFiles.Count == 0 || _displayOrder.Count == 0) return;
 
             int attempts = 0;
-            while (attempts < _imageFiles.Count)
+            while (attempts < _displayOrder.Count)
             {
-                _currentIndex = (_currentIndex + 1) % _imageFiles.Count;
-                if (TryDisplayImage(_imageFiles[_currentIndex]))
+                _displayIndex++;
+                if (_displayIndex >= _displayOrder.Count)
                 {
-                    return;
+                    // Slideshow loops continuously until program is exited
+                    if (_isRandomized)
+                    {
+                        ReshuffleDisplayOrder();
+                    }
+                    _displayIndex = 0;
+                }
+
+                int imageIndex = _displayOrder[_displayIndex];
+                if (imageIndex >= 0 && imageIndex < _imageFiles.Count)
+                {
+                    if (TryDisplayImage(_imageFiles[imageIndex]))
+                    {
+                        return;
+                    }
                 }
                 attempts++;
             }
@@ -169,15 +334,24 @@ namespace SlideshowWidget
 
         private void PrevImage()
         {
-            if (_imageFiles.Count == 0) return;
+            if (_imageFiles.Count == 0 || _displayOrder.Count == 0) return;
 
             int attempts = 0;
-            while (attempts < _imageFiles.Count)
+            while (attempts < _displayOrder.Count)
             {
-                _currentIndex = (_currentIndex - 1 + _imageFiles.Count) % _imageFiles.Count;
-                if (TryDisplayImage(_imageFiles[_currentIndex]))
+                _displayIndex--;
+                if (_displayIndex < 0)
                 {
-                    return;
+                    _displayIndex = _displayOrder.Count - 1;
+                }
+
+                int imageIndex = _displayOrder[_displayIndex];
+                if (imageIndex >= 0 && imageIndex < _imageFiles.Count)
+                {
+                    if (TryDisplayImage(_imageFiles[imageIndex]))
+                    {
+                        return;
+                    }
                 }
                 attempts++;
             }
@@ -559,6 +733,16 @@ namespace SlideshowWidget
             {
                 newWindow.SetShadowEnabled(ShadowMenuItem.IsChecked);
             }
+            newWindow._recurseSubdirectories = this._recurseSubdirectories;
+            if (newWindow.RecurseSubdirectoriesMenuItem != null)
+            {
+                newWindow.RecurseSubdirectoriesMenuItem.IsChecked = this._recurseSubdirectories;
+            }
+            newWindow._isRandomized = this._isRandomized;
+            if (newWindow.RandomizeOrderMenuItem != null)
+            {
+                newWindow.RandomizeOrderMenuItem.IsChecked = this._isRandomized;
+            }
             newWindow.Show();
         }
 
@@ -590,6 +774,7 @@ namespace SlideshowWidget
             _timer.Tick -= Timer_Tick;
             SlideshowImage.Source = null;
             _imageFiles.Clear();
+            _displayOrder.Clear();
             base.OnClosed(e);
         }
     }

@@ -7,6 +7,18 @@
 	  <ImplicitUsings>enable</ImplicitUsings>
 	  <UseWPF>true</UseWPF>
 	  <ApplicationIcon>icon.ico</ApplicationIcon>
+	  
+	  <!-- Release & Assembly Metadata -->
+	  <Version>1.0.1</Version>
+	  <AssemblyVersion>1.0.1.0</AssemblyVersion>
+	  <FileVersion>1.0.1.0</FileVersion>
+	  <Product>SlideshowWidget</Product>
+	  <Title>SlideshowWidget</Title>
+	  <Authors>TheZenHippie</Authors>
+	  <Company>TheZenHippie</Company>
+	  <Description>A modern, lightweight, borderless desktop slideshow widget for Windows.</Description>
+	  <Copyright>Copyright © 2026 TheZenHippie</Copyright>
+	  <RepositoryUrl>https://github.com/TheZenHippie/SlideshowWidget</RepositoryUrl>
 	</PropertyGroup>
 
 	<ItemGroup>

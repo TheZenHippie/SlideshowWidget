@@ -427,3 +427,5 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+.github/workflows/release.yml
+build-release.ps1

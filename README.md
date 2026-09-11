@@ -135,6 +135,12 @@ dotnet build
 dotnet build -c Release
 ```
 
+### Package GitHub Release:
+```powershell
+.\build-release.ps1
+```
+Generates self-contained standalone and framework-dependent release binaries, ZIP packages, and SHA-256 checksums in `release/`.
+
 ### Run Directly:
 ```bash
 dotnet run
